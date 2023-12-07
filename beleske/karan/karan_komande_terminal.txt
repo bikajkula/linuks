@@ -1,0 +1,30 @@
+ls -la -> iscitava sve fajlove sa privilegijama
+mv dat1 dat2-> menja ime direktorijuma 
+mv *.ext /path/ -> prebacivanje fajlova u folder
+more dat1 dat2 -> prikaze sadrzaj datoteka uporedo
+ls > *.txt -> smesta sadrzaj u txt fajl
+rename ' s /\.//; ' .* -> iz skrivenih u neskrivene 
+diff dat1 dat2 -> razlika izmedju fajlova
+pushd <dir> -> prebacivanje direktorijuma na stek
+touch -> pravi novi fajl
+cp dat1 /path/ -> kopira fajl u path
+head -x .txt -> prvih x linija fajla
+tail -x .txt -> poslednjih x linija fajla
+tail -f -x .txt -> konstantno u terminalui pokazuje poslednjih x linija
+chown -R rtrk.rtrk  /path/ -> privilegije nad fajlom
+cat dat1>>dat2 -> ispisuje dat2 na kraj dat1
+ln -s /source file/ myFile ->simbolika nize
+unlink dat1 -> brisanje simbolicnog linka\
+grep -ri xxx -> recenice sa xxx u sebi
+grep -ri xxx | grep -ri xxx1 -> filter ju filtru
+grep 'word1\|word2\|word3'  -> trazenje vise reci 
+grep -i xxx-> razlika izmedju velikih i malih slova
+grep -ri xxx -Z 1 -n -> pokaze liniju ranije i kasnije
+grep -n -ri xxx-> prikaz linije 
+grep -v -ri xxx -> negativni filter (ispisuje svuda gde se NE SPOMINJE ta rec)
+grep -lri xxx -> nazivi datoteka gde se spominje ta rec
+rsync dat1 ./dat2 -> prebacivanje dat1 u dat2
+comand & -> otvara u pozadini
+sudo apt-get unstall -> instaliranje paketa
+meld dat1 dat2 -> razlika izmedju fajlova 
+sed -i 's/a1/a1'  ->  menja a1 sa a2

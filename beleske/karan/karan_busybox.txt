@@ -1,0 +1,118 @@
+1. pozicionirati se u ~/linux-kernel-labs/src
+
+2*. 	git checkout master
+	git checkout -b <stagod>  
+
+	*proizvoljno, obicno se uradi na pocetku izrade zadatka
+
+3. preuzimanje izvornog koda busybox-a
+	wget http://www.busybox.net/downloads/busybox-1.21.1.tar.bz2
+
+	tar xvjf busybox-1.21.1.tar.bz2
+
+4*. pozicionirati se u ~/linux-kernel-labs/src/linux
+
+	git checkout rpi-4.4.y
+	git checkout -b <stagod>
+
+5. konfiguracija i prevodjenje linuks kernela
+
+	cd ~/linux-kernel-labs/modules/data/tinyLinux.config
+	cp tinyLinux.config ~/linux-kernel-labs/src/linux
+	cd ~/linux-kernel-labs/src/linux/ 
+	mv tinyLinux.config .config
+	ls -la //da li je promenio naziv u .config
+	sudo chown –R rtrk.rtrk /naziv foldera
+
+	export ARCH=arm
+	export CROSS_COMPILE=arm-linux-gnueabihf
+
+	make -j4 //prevodjenje kernela, izgenerisace zImage koji se nalazi na putanji :
+		/linux-kernel-labs/src/linux/arch/arm/boot/
+
+6. konfiguracija i prevodjenje busybox-a
+
+	cd /linux-kernel-labs/modules/data/
+	cp tinyBusybox.config ~/linux-kernel-labs/src/busybox-1.21.1
+	cd ~/linux-kernel-labs/src/busybox-1.21.1
+	mv tinyBusybox.config .config
+
+	make menuconfig // ukljuciti opciju da se busybox prevede sa staticki uvezanim 				bibliotekama, podesiti putanju na kojoj ce se instalirati ako je to 
+			trazeno.
+	
+	make		//prevodjenje
+	make _install	// instaliranje
+
+	sudo gedit /etc/exports/ 
+	
+	promeniti putanju za rfs(root file system) na putanju u kojoj je instaliran busybox
+		/linux-kernel-labs/src/busybox-1.21.1/_install
+
+	mkdir /linux-kernel-labs/src/busybox-1.21.1/_install/dev/
+	
+	ls -l /dev -> koji je major i minor broj	
+	
+	mknod /linux-kernel-labs/src/busybox-1.21.1/_install/dev/tty1 c 4 1
+	mknod /linux-kernel-labs/src/busybox-1.21.1/_install/dev/tty2 c 4 2
+	mknod /linux-kernel-labs/src/busybox-1.21.1/_install/dev/tty3 c 4 3
+	mknod /linux-kernel-labs/src/busybox-1.21.1/_install/dev/tty4 c 4 4
+	mknod /linux-kernel-labs/src/busybox-1.21.1/_install/dev/ttyAMA0 c 204 64
+	mknod /linux-kernel-labs/src/busybox-1.21.1/_install/dev/console c 5 1
+
+7. dodavanje proc i sys sistema datoteka
+
+	cd _install -> rfs  /linux-kernel-labs/src/busybox-1.21.1/_install
+	mkdir proc
+	mkdir sys
+	mount -t sysfs sys sys
+	mount -t proc proc proc
+
+	mkdir etc
+	cd etc
+	mkdir init.d
+	cd init.d
+	sudo gedit rcS
+		mount -t proc none /proc
+		mount -t sysfs none /sys
+			ako se trazi web sprega	
+		/usr/sbin/httpd -h /www/ &
+		http://ip_rpi
+	cd ..
+	sudo gedit inittab
+		::sysinit:/etc/init.d/rcS
+		ttyAMA0::askfirst:/bin/sh
+
+8. initramfs
+	
+	cd /linux-kernel-labs/src/linux
+	make xconfig
+	pronaci *Initramfs source file(s)* i dodati putanju rfs (/linux-kernel-labs/src/busybox-1.21.1/_install)
+	sacuvati izmene 
+	cd /linux-kernel-labs/src/busybox-1.21.1/_install/
+	mv linuxrc init
+	make -j4 //ponovo prevesti kernel
+
+	U U-boot-u:
+	izmeniti bootargs (editenv bootargs) tako da ostanu samo parametri rw i console
+	
+	ako ne bude radilo, ponoviti korak iz 6. od komande ls -l /dev za sve neophodne datoteke
+
+9. Cuvanje izmena
+	cd /linux-kernel-labs/src/linux
+	git add -A // moguce je da ce trebati sudo
+	git commit -as -m "neki tekst"
+	
+
+10. Prebacivanje na deljene datoteke
+
+	* staticke biblioteke
+	napraviti c program na pc-u i prevesti sa arm-linux-gnueabihf-gcc -o hello hello.c --static
+
+	prebaciti objektni fajl u rfs 
+	i pokrenuti na rpi
+
+	* ako je potrebno raditi sa deljenim datotekama, izostaviti --static u komandi za prevodjenje, prebaciti u rfs objektni fajl 
+	prebaci u rfs objektni fajl  
+	u rfs napraviti mkdir lib
+	cp /usr/arm-linux-gnueabihf/lib/ld-linux-armhf.so.3 lib/
+	cp /usr/arm-linux-gnueabihf/lib/libc.so.6 lib/

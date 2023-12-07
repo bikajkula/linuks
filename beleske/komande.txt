@@ -1,0 +1,245 @@
+SAMO JAKO :)
+
+
+***********************************************************
+
+TERMINAL
+
+--prvo podesiit variable okruzenja (kad god se otvara novi terminal)
+
+export ARCH=arm
+export CROSS_COMPILE=arm-linux-gnueabihf-
+
+***********************************************************
+
+PDF 4
+
+--SERIJSKA KOMUNIKACIJA --> za usb vezu sa pi-jem
+
+picocom -b 115200 /dev/ttyUSB0 
+
+--ako nece sa ttyUSB0, uraditi ls -l /dev/ttyUSB, pa TAB da sam dopuni USB0 ili USB1
+(jer ne znamo koji ima od ta dva)
+
+
+
+--PODESAVANJE IP ADRESA (obavezno uraditi ifconfig, jer je mozda promenjena ip adresa
+PC-a)
+
+setenv ipaddr <IP adresa rpi>
+setenv serverip <IP adresa pc>
+saveenv
+
+
+
+--RESTARTOVANJE TFTP-A I/ILI NFS SERVERA (uraditi tftp ako sve zabode i restartovati i NFS server)
+
+sudo service tftpd-hpa restart
+sudo /etc/init.d/nfs-kernel-server restart
+
+
+
+--nakon toga, ako je doslo do promene ip adrese ili ako menjano rfs, moraju se promeniti bootargs (ovo se menja i u slucaju promene IP adrese i rfs-a) i /etc/exports (menja se samo u slucaju promene rfs-a)
+u /etc/exports (sudo gedit /etc/exports &):
+	/home/rtrk/linux-kernel-labs/modules/nfsroot <IP adresa rpi>(rw,no_root_squash,no_subtree_check)
+	
+sudo /etc/init.d/nfs-kernel-server restart
+
+u U-boot-u za bootargs:
+	setenv bootargs "root=/dev/nfs rw ip=<IP adresa rpi> console=ttyAMA0,115200 nfsroot=<IP adresa pc>:/home/rtrk/linux-kernel-labs/modules/nfsroot"
+saveenv
+reboot
+
+
+
+--ako hoces da proveris sta NFS ima od putanja i adresa
+
+showmount -e localhost
+
+
+
+--ako se menja bcm2709-rpi-2-b.dtb (ako se menja ime, tipa doda se custom), onda treba promeniti to i u parametrima za automatsko boot-ovanje
+
+setenv bootcmd "tftp 0x01000000 zImage; tftp 0x02000000 bcm2709-rpi-2-b.dtb; bootz 0x01000000 - 0x02000000"
+saveenv
+
+
+
+--PATCH-ovanje
+
+--pozicioniramo se u direktorijum koji zelimo da patch-ujemo, pa ovo ispod
+
+cat ~/linux-kernel-labs/modules/data/LinuksKurs.patch | patch -p1
+export ARCH=arm
+export CROSS_COMPILE=arm-linux-gnueabihf-
+
+--primenjujemo konfiguraciju koja je data
+
+make bcm2709_rtrk_linux_kurs_defconfig
+make xconfig (tu podesiti sta treba)
+
+--u xconfig-u navesti ime verzije u LOCALVERSION i nakon toga kada namestis sve i boot-ujes pi, uneses uname –r da bismo bili sigurni da nam je trenutna verzija na pi-u
+
+make -j4
+cp zImage (koji se nalazi u src/linux/arch/arm/boot) /var/lib/tftpboot
+sudo /etc/init.d/nfs-kernel-server restart 
+reboot
+
+***********************************************************
+
+PDF 5
+
+--ako je data konfiguracija linuxa, pozicionirati se u sirektorijum gde je ta konfiguracija i iskopirati je u ~/linux-kernel-labs/src/linux
+
+--preimenovati je u .config
+
+mv Linux.config .config
+make xconfig (tu podesiti sta treba)
+make -j4
+cp zImage (koji se nalazi u src/linux/arch/arm/boot) /var/lib/tftpboot
+sudo /etc/init.d/nfs-kernel-server restart 
+reboot
+
+
+
+--DODAVANJE UREDJAJA U RFS
+
+--pozicioniramo se u nfsroot i napravimo dev direktorijum
+
+mkdir dev
+
+--u njemu pravimo odgovarajuce uredjaje
+--ako nam nisu vec zadati major i minor, iscitavamo ih iz /dev 
+
+ls -l /dev
+
+--prijavljivanje uredjaja
+
+sudo mknod <ime uredjaja> <tip uredjaja (c ili b)> major minor
+npr: sudo mknod ttyAMA0 c 204 64
+
+***********************************************************
+
+PDF 6
+
+--BUSYBOX
+
+--uzimamo dati fajl za konfiguraciju linuxa kao u PDF 5 i kopiramo u .config
+--pokrecemo xconfig i podesavamo sta treba
+
+make -j4
+cp zImage (koji se nalazi u src/linux/arch/arm/boot) /var/lib/tftpboot
+sudo /etc/init.d/nfs-kernel-server restart 
+reboot
+
+
+
+--uzimamo fajl koji je dat za konfiguraciju busybox-a i kopiramo u .congif
+
+make menuconfig (podesimo sta treba i putanju gde ce se instalirati --> _INSTALL)
+make
+make install
+
+--rfs je _INSTALL (izmeniti gde je potrebno)
+
+
+
+--DODAVANJE PROC I SYS
+
+--napraviti direktorijume /proc, /sys i etc/init.d u _INSTALL
+--u init.d napraviti rcS
+
+gedit rcS &
+
+--u rcS upisati ono sto treba da se izvrsi nakon boot-ovanja
+
+mount -t proc none /proc
+mount -t sysfs none /sys
+
+--u /etc napraviti inittab
+
+gedit inittab &
+
+--u inittab upisati:
+
+::sysinit:/etc/init.d/rcS
+ttyAMA0::askfirst:/bin/sh
+
+
+
+--WEB SPREGA (WWWW)
+
+--pdf dan06, strana 3
+
+--u U-Boot-u:
+	/usr/sbin/httpd -h /www/ &
+	
+--u Mozilla:
+	http://<adresa rpi>
+
+
+
+--GENERISANJE INITRAMFS
+
+make xconfig
+
+--naci CONFIG_INITRAMFS_SOURCE (staviti mu putanju do rfs-a)
+
+make -j4
+cp zImage (koji se nalazi u src/linux/arch/arm/boot) /var/lib/tftpboot
+sudo /etc/init.d/nfs-kernel-server restart 
+reboot
+
+--nakon reboot-a, po potrebi, dodati sta fali (ako ispisuje da mu fali neki od onih tty1, tty2 ili tako nesto, onda radis sudo mknod za to sto fali)
+
+***********************************************************
+
+PDF 7
+
+--PRAVLJENJE DRIVER-A
+
+--koristi se neka podrazumebana kofiguracija
+
+make bcm2709_defconfig
+make xconfig
+make -j4
+cp zImage (koji se nalazi u src/linux/arch/arm/boot) /var/lib/tftpboot
+sudo /etc/init.d/nfs-kernel-server restart 
+reboot
+
+--u BUILDROOT-u:
+
+insmod ./hello_version.ko
+dmesg
+lsmod (izlistava insmodovane drivere)
+
+--pozicionirati se u /dev
+
+mknod hello_version c 245 0
+cat hello_driver (ili kako se vec driver zove) --> za proveru read funkcije
+dmesg
+echo "PORUKA IZ WRITE" > /dev/hello_driver --> za proveru write funkcije
+dmesg
+cat hello_driver --> za proveru write funkcije
+dmesg
+
+rmmod ./hello_version.ko
+
+--provera za ioctl
+
+insmod ./hello_version.ko
+mknod hello_version c 245 0
+arm-linux-gnueabihf-gcc ioctl.c -o ioctl
+
+--u BUILDROOT-u
+
+echo "porukica" >/dev/hello_driver
+./ioctl /dev/hello_driver 1 ili ./ioctl /dev/hello_driver 0
+
+
+
+
+FUN FACTS (za radoznale ili ako stignes do nunchuk -- umri)
+
+--ako se radi make modules install, mora se prvo uraditi chown... (postajes privremeni root, tj direktorijum u kom se nalazis) 
+
