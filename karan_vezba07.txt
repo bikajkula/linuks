@@ -1,0 +1,86 @@
+Vezba 7
+
+
+Pozicionirati se u /linux-kernel-labs/src/linux i tu uraditi:
+
+	make bcm2709_defconfig --> pravljenje defaultne konfiguracije
+
+Zatim:
+
+	export ARCH=arm
+	export CROSS_COMPILE=arm-linux-gnueabihf-
+
+Podesiti sufiks za verziju kernela:
+
+	make xconfig --> local version i ukuca se zeljeni sufiks (ENTER)
+
+Prevodjenje kernela:
+
+	make -j4
+
+Prebacivanje zImage-a:
+
+	cd ~/linux-kernel-labs/src/linux/arch/arm/boot
+	sudo cp zImage /var/lib/tftpboot/
+
+Za rfs se bira nfsroot:
+
+/home/rtrk/linux-kernel-labs/modules/nfsroot 10.81.35.188(rw,no_root_squash,no_subtree_check)
+
+Na racunaru idemo u:
+
+	cd ~/linux-kernel-labs/modules/nfsroot/root/hello
+	gedit hello_version
+
+i zatim napisamo drajever kao sto je trazeno u vezbi (read, write, ioctl) i prevedemo hello_version.c
+
+	make
+
+Na rpi u buildroot-u uradimo:
+	
+	cd hello
+
+i onda dodamo nas modul:
+	
+	insmod ./hello_version.ko
+
+On ce nam izbaciti major i minor broj jer smo u inicijalizaciji zahtevali da nam to ispise.
+
+Vracamo se u rfs:
+
+	cd
+
+i zatim prelazimo u /dev:
+
+	cd /dev
+
+Tu cemo sa mknod napraviti novi cvor:
+
+	mknod hello_version c 245 0 (u mom slucaju su ti major i minor brojevi)
+
+i kad uradimo ls -l u /dev direktorijumu hello_version mora biti izlaistan
+
+Mozemo se vratiti u root direktorijum sa cd i zatim tu isprobamo sa echo i cat funkcijom read i write funkcije:
+
+	echo "Uneses neki tekst" > /dev/hello_version (uradi write)
+	cat hello_version (uradi read i ispise u konzolu "Uneses neki tekst")
+
+Testiranje ioctl funkcije:
+Na racunaru idemo u hello folder i tamo prevedemo dati ioctl.c fajl sa ali sa statickim uvezivanjem
+
+	arm-linux-gnueabihf-gcc -o ioctl ioctl.c -static
+
+zatim se u hello folderu pojavi ioctl objektna datoteka
+
+Na rpi-ju testiramo tako sto se pozicioniramo u hello folder i onda
+
+	echo "poruka" > /dev/hello_version (uradi write)
+	./ioctl /dev/hello_version 1 (prvi parametar je modul koji je mknod-ovan a drugi param je koju funkciju iz switch-a biramo)
+	cat hello_version (treba da ispise PORUKA)
+
+Onda ide linuks standard kodovanja za koji treba da se pokrene par komandi (ali ovo je nebitno u sustini)
+
+	cp ~/linux-kernel-labs/src/linux
+	scripts/checkpatch.pl -h
+
+	~/linux-kernel-labs/src/linux/scripts/checkpatch.pl--no-tree hello_version.c

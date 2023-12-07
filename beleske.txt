@@ -1,0 +1,234 @@
+						4.1	Dokumentacija 
+
+######							objasnjenja fajlova i dadoteka
+
+-	zImage						-slika kernela
+-	var/lib/tftpboot/				-deljeni folder tftp-a izmedju rpi i pc-a
+-	bcm2709-rpi-2-b.dtb				-spisak svih komponenti koji se nalaze na rpi
+-	linux-kernel-labs/modues/nfsroot/	-ovo je root file sistem od rpi
+
+######
+
+****** 							ako sjebes karticu ovo odradi
+
+-	bootargs
+-	setenv ipaddr adres.ip.rpi			-setuje ip adresu rpi (Mozemo da stavimo bilo koju slobodnu,na faxu ona koja pise na kutiji)
+-	setenv serverip adres.ip.serverPC		-setuje adresu racunara( to je adresa na koju je povezan racunar)
+-	tftp 0x01000000(mem lok.) ime_datoteke		-ucitava ime_datoteke na memorisku lokaciju 0x01000000
+-	setenv bootcmd "tftp 0x01000000 zImage;
+	tftp 0x02000000 bcm2709-rpi-2-b.dtb;
+	bootz 0x01000000 - 0x02000000"			-setuje bootcmd da ne moras svaki put da kucas tftp komande i bootz... u picku materinu
+-	setenv bootargs "root=/dev/nfs rw ip=adres.ip.rpi
+	console=ttyAMA0,115200 nfsroot=adres.ip.serverPC
+	:putanja_do_rfs					-postavlja nfsroot na direktorijum u putanja_dor_rfs(/home/rtrk/linux-kernel...../nfsroot)
+-	saveenv						-bilo koja izmena envairmenta sacuva na SD da se ne bi moralo menjati svaki put kad se pokrene 
+
+
+******
+
+-	sudo tar xvjf ime_datoteke -C lokacija		-raspakivanje datoteke sa imenom ime_datoteke u lokaciju
+-	sudo choown -R user.group ime_direktorijuma	-dodeljuje prava korisniku user.group na rad u ime_direktorijuma 
+-	picocom -b 115200 /dev/ttyUSB0			-pokrece serisku komunikaciju sa ttyUSB0(rpi)
+-	sudo nano ime_datoteke.txt			-kreira ime_dateteke.txt ako ne postoji
+-	sudo nano /etc/exports				-odakle nfs-kernel-server cita putanje i uredjaje koji mogu pristupiti i njihova prava
+-	sudo /etc/init.d/nfs-kernel-server restart	-restartuje nfs server kad se promeni nesto u exports
+-	sudo cp zImage /var/lib/tftpboot/		-kopira zImage u tftpboot folder
+-	bootz 0x01000000 - 0x02000000			-0x01000000 adresa zImage -adresa init ram fajl sistema -0x02000000 device bcm blok
+
+						4.2	Dokumentacija
+
+
+!****!							OVO MORAS CIM UPALIS NOVI TERMINAL(SVAKI POSEBAN TERMINAL,moras kucati ovo)
+							 
+-	export ARCH=arm					-podesavamo arhitekturu da je arm
+-	CROSS_COMPILE=arm-linux-gnueabihf-		-podesavamo kompajler da radi za arm arhitekturu 
+-	export -p					-provarava sta je podeseno sve u exportu, nama potrebni ARCH i CROSS_COMPILE
+
+!****!
+
+#####							Objasnjenja fajlova i datoteka
+
+-	linux-kernel-labs/modules/data/arch/arn/configs	-tu se nalazi bcm2709,,, konfig fajl za kernel,ako drugacije nije definisano,u putanji u pathu
+
+#####
+
+-	jobs 						-izlistava poslove koji su pokrenuti
+-	fg [broj posla]					-otvara iz backgrounda ili stoped aplikaciju pod brojem posla i zakljucava terminal
+-	bg [broj posla]					-otvara ga u background pod brojem posla i moze se koristiti terminal
+-	ctrl + z					-salje pokrenutu aplikaciju u stopped
+-	ctrl + c					-ubija pokrenutu aplikaciju skroz
+-	patch -p1 < ime_patha.patch			- -p1 brise prvi deo putanje,pravi zakrpe
+
+-	cp mesto_config /linux-kernel-labs/src/linux/
+	arch/arm/configs				-kopiramo fajl sa lokacije mesto_config gde se nalazi config, u direktorijum naveden u 3. 								parametru
+-	make ime_config_fajla				-pravis .config iz fajla koji si naveo u ime_config_fajla koji se nalazi u linux/arch/arm/configs
+							potrebno je da se nalazis u src/linux direktorijumu
+-	make xconfig					-graficki editor za .config fajl,paziti na depands (=y),ako je (=n) moras ukljuciti to sto je(=n)
+- 	make -j4					-bilduje kernel,posle svakog make treba premestiti zImage(sledeci korak), -j4 na koliko thread
+-	sudo cp zImage /var/lib/tftpboot/		-kopira zImage u tftpboot folder
+-	setebv bootargs root=/dev/mmcblk0p2 rootwait
+	console=tty1 console=ttyAMA0,115200		-ovo podesava da moze da se butuje root fajl sisem sa kartice
+-	boot						-pokrecemo boot iz u-boota 
+-	reboot						-restartuje boot
+
+						5	Dokumentacija
+
+#*				Komentari
+	kernel-panic		-ako izbaci kernel panic proveriti bootargs, i exports(/etc/exports)
+	tty greske		-ako ispisuje no such file or directory za odredjene uredjaje potrebno je odraditi mknood opisan dole u textu za taj 					uredjaj
+	rotation		-make xconfig ukljuciti framebafer console rotation
+*#
+	
+-	make distclean 					-obrise ceo .config file,obrise zImage,sve sto se bilduje make -j4
+-	make modules_install INSTALL_MOD_PATH=~/
+	linux-kernel-labs/modules/nfsroot		-pravi drajvere za neke uredjaje koji su ukljuce rpi,ako izbaci x86,proveriti export ili 								promeniti prava pristupa za folder
+-	sudo chown root.root ime			-ako rpi ov sistem zahteva root korisnika moraju se vratiti prava na root
+- 	sudo mknod ime_uredjaja c [major] [minor]	-pravi file sa odredjenim major i minor (tty1,ttyAMA0,console,null)-to je dodavano u 5 vezbi
+-	fbcon:....					-to se dodaje u bootargs ili nesto drugo zavisi od zadatka u 5 vezbi je bilo potrebno fbcon:rotate:5
+						
+						6	Dokumentacija
+
+*#
+	
+	u busybox moze da nema dev,napravi ga sa mkdir		
+	iz bootargs se brise putanja do _install rfs a,zato sto smo initramfs,to jest inicijalizacija rfs u ramu	
+
+*#
+#####							rcS skripta
+
+-	#! /bin/sh	
+	mount proc /proc -t proc
+	mount sysfs /sys -t sysfs			-mauntovanje na proc u proc folder i sys u sys folder 
+
+							inittab
+
+-	::sysinit:/etc/init.d/rcS
+	::ttyAMA0::askfirst:/bin/sh			-bog zna sta radi
+
+#####
+
+
+-	make menuconfig					-busybox nema xconfig pa se koristi menuconfig kad treba nesto da se menja u njegovom .config
+							poziva se u njegovom folderu gde se nalazi .config
+-	Busybox Settings->Build Options->Build..static	-ovo palimo sa (space) da seprevede sa staticki uvezanom bibliotekom
+-	Busybox Settings->Installation...->name		-ovde menjamo putanju gde ce se smestiti _install folder u kom je root file sistem od busyboxa
+-	make install					-za busybox se koristi make install,ne kao kod obicnog kernela make -j4
+-	sudo nano exports				-dodaje se putanja do _install u exports
+-	sudo /etc/init.d/nfs-kernel-server restart	-restartuje nfs server kad se promeni nesto u exports
+-	editenv bootargs				-mora se promeniti putanja u bootargs
+-	saveenv						-za lazica debila 
+
+-	cp -ar ime_direktorijuma ime_odredista		-kopira sve fajlove iz foldera sa svim pravima 
+-	sudo chmod 744 rcS				-dodela prava read-write-exe za user,isto to za grupu,i ostale,proveri na predavanjima
+-	/usr/sbin httpd -h /www/ &			-program (httpd -h) da se pokrene server za sajt
+
+-	cp ld-linux-armhf.so.3 dir_u_busybox_rfs	-kopiramo biblioteku koja nam je potrebna za pokretanje programa u ovom slucaju
+-	/usr/arn-linux-gnueabihf/lib			-koja god biblioteka nam treba iz kompajlera nalazi se tu (ld-linux-armhf.so.3,libc.so.6)
+-	make xconfig					-u linux make config podesiti initramfs na putanju do busybox rfs-a
+
+						7	Dokumentacija
+
+#*						Komentari
+
+	module_init				-poziva se kad se ukuca insmod
+	module_exit				-poziva se kad se ukuca rmmod za detalje predavanja
+	#include<utsname.h>			-sistemska datoteka koja sadrzi informacije o sistemu
+						-dosta funkcija ima na stackoverflow, i na netu
+	device_read,device_write		-funkcija koju smo prekucali s neta, i predavanja(7. dan)
+ http://derekmolloy.ie/writing-a-linux-kernel-module-part-2-a-character-device/?fbclid=IwAR2E1wIHTjv13w86D0D6K6UMmbWOB4CDStO-pRIg3Fa6pJWg_tYFTh-x7Ok
+						-sajt gde se nalaze device_read,device_write...
+
+*#
+
+#####							-(V7,jednostavni znakovni rukovodilac) nalazi slobodan major broj ,zauzima ga 								registruje uredjaj za neku klasu,pazi svuda dosta je komplikovano
+							
+-	register_chardev(0,devicename,&structura)	-registruje device kao device_name i vraca kao povratnu vrednost majornumber
+-	class_create(THIS_MODULE,CLASS_NAME)		-kreira klasu, povratna vrednost structura klase
+-	device_crate(povr_class_create,NULL,MKDEV
+	(majorNumber,4),NULL,DEVICE_NAME);		-kreira device u /dev umesto mknod
+
+-	device_destroy(,,,)				-ugradjena funkcija stavlja se u exit da bi rm mod obrisao device	
+-	echo "text" > /dev/modul			-ubacuje text u modul 
+-	cat /dev/modul					-ispisuje sadrzaj modula
+-	./ioctl	/dev/modul 0				-otvara test aplikaciju i daje test slucaj za modul i cmd=0
+-	arm-linux-gnueabihf-gcc ioctl.c -o ioctl -static	-kad se kompajlira potreban static po defaultu zadatka
+ 
+#####
+
+#####							-(v7,dodavanje hello_version koda u kernel kod)
+
+-	~/linux-kernel-labs/src/linux/driver/misc		-folder u koji se treba pozicionirati,PISE U PDF,
+-	gedit Kconfig						-otvoriti ga
+-		config HELLO_VERSION				-dodati ove linije po uzoru na druge module koji postoje od ranije
+-	gedit Makefile						-otvori ovo
+-		obj-$(CONFIG_HELLO_VERSION)+=hello_version.o	-po uzoru na linije iz Makefile-a dodati liniju
+-	make xconfig						-proveriti da li se nalazi modul koji smo dodali u kernel kodu,i ukljuciti ga
+-								-nastavak vezbe je dalje opisan u pdf-u vezbe, dodela prava sa chown pa komanda
+-	make moduels_install
+
+#####
+
+#####							-(v7,kreiranje zakrpe)
+-								-naci prethodnu verziju linuxa-ili fajla koji se krpi
+-	diff -uNr linux/drivers/misc/Kconfig linux.old/drivers
+	misc/Kconfig > ime.patch					-smesta razliku Kconfig u ime.patch
+-	diff -uNr linux/drivers/misc/Makeconfig linux.old/drivers/
+	misc/Makeconfig >> ime.patch					-dodaje na kraj ime.patch
+-									-pomeri patch u folder u kom se nalazi Makefile od Linuxa
+-	patch -p1 < ime.patch						-pokrece se patch file
+-	make xconfig							-proveri da li postoji promena
+#####
+
+-	make bcm2709_defconfig				-koristimo podrazumevanu konfiguraciju koja se nalazi u direktorijumu arm/configs 
+-	make xconfig -> LOCAL VERSION			-menjamo sopstveni sufiks
+
+-	insmod ime_datoteke.ko				-dodaje kernel object u modul(memoriju) dodaje driver	}		OVO se radi
+-	rmmod	ime_datoteke(BEZ KO)			-brise driver iz modula(memorije)			}		    NA
+-	lsmod						-iscitava drivere ucitane u memoriji			}		    RPI
+-	utsname()->release				-ispisuje ime verzije,naci detaljnije o utsname() na google
+-	module_param(name,charp,0000)			-povezuje promenljivu name sa argumentima funkcije tipa charp,videti na google module_param
+-	insmod ime_datoteke.ko name=`whoami`		-u name smesta povratnu vrednost iz funkcije whoami
+
+						10	Dokumentacija
+
+#*						Komentari
+						-dts je sorce file, a dtb je binary fajl
+
+*#
+
+#####						-(v10,pravljenje posebnog stabla uredjaja)
+	
+-	mv bcm2709... boot/dts/			-premestamo fajl koji je naveden u zadatku u /linux-kernel-labs/src/linux/arch/arm/boot/dts
+-						-kopiraj stvari iz jednog bcm2709 u custom(u 10 vezbi je bilo sa i2c1)	
+-	&gpio
+-						-prvo odradi korake vezane za menjanje bcm2709-custom.dts pa tek onda make
+-	gedit Makefile				-u geditu promeni ili dodaj(ako se promeni nece raditi originalni) bcm na custom ako je menjano 
+-	make dtbs				-odradi make iz Linux direktorijuma vratis se u /linux-kernel-labs/src/linux/
+-	cp ime.dtb /var/lib/tftpboot		-kopiraj dtb fajl iz .../boot/dts foldera u tftpboot
+-	editenv bootcmd				-promeni dtb fajl u taj koji smo napravili i kopirali u tftpboot
+-	find /proc/device-tree/ -name "*ime*"	-proverava da li je napravio cvor
+-	cat /proc/device-tree/soc/i2c@7e804000
+	/nunchuk@52/status			-ispisuje status koji smo ispisali tamo
+
+#####
+
+#####						-(v10,implementacija osnovnog i2c rukovodioca za nunchuk)
+
+-						-odradi ta sranja install_mod_path... ima u vezbi 10 (CITAJ U PDF)
+
+
+						11	Dokumentacija
+
+-	make bcm2709_defconfig				-koristimo podrazumevanu konfiguraciju koja se nalazi u direktorijumu arm/configs 
+-	make ime_defconfig				-koristimo kad je zadatada konfiguracija, smestamo je u src/arch/arm/configs/ i onda pozivamo
+							make ime_defconfg (u linux direktorijumu)
+-	mv ime_defconfig .config			-isto kao prethodna linija samo drugaciji nacin, ne moras prebacivati ime_defconfig u 								src/linux/arch.../configs nego smestis konfiguraciju u src/linux/ i pozoves mv
+-	make 						-prevodjenje modula se radi make komandom u folderu gde se nalazi modul
+-	i2cdetect -l					-detektuje bas i2c magistralu da li je ukljucena
+-	modprobe i2c_dev				-poziva device za i2c magistralu, i ubacuje je u module
+-	i2cdetect -F 1					-izlista funkcionalnosti koje podrzava i2c magistrala broj jedan je koja je magistrala (0,1,2)
+-	i2cdetect -r 1					-pokazuje adresu nuncaka
+-	i2cdetect 1					-pokazuje tabelu adrese nuncaka 
+
+
+

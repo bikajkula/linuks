@@ -1,0 +1,37 @@
+Dodavanje novog apleta:
+
+Dodajete novi busybox aplet capitalize sa sledecom fukncionalnoscu.
+						...
+						
+	* Premestis se u busybox source tree (busybox korensi folder) i nadji miscutils folder
+	, tu napravis novi fajl capitalize.c i napises kod koji je prilozen uz 
+	ovu skriptu. 
+	
+	* Zatim ides u u include/applets.src.h i tu dodas
+		IF_CAPITALIZE(APPLET(capitalize, BB_DIR_USR_BIN, BB_SUID_DROP))
+		
+	* U include/usage.src.h dodas:
+	
+		#define capitalize_trivial_usage \
+		  "[FILE]..."
+		 #define capitalize_full_usage \
+			"Puts content of input files in output file,
+			but change the letters from small to large."
+			
+	* U miscutils/Config.src dodas:
+	
+		config CONFIG_CAPITALIZE
+			bool “capitalize” 
+			default n 
+			depends on LFS
+			help 
+				Puts content of input files in output file,
+				but change the letters from small to large.
+				
+	* U miscutils/Kbuild.src dodas:
+		lib-$(CONFIG_CAPITALIZE) += capitalize.o
+	
+	* U src/busybox
+	
+		make
+		make install

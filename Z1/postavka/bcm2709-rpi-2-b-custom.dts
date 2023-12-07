@@ -1,0 +1,41 @@
+/dts-v1/;
+
+#include "bcm2709.dtsi"
+
+/ {
+	compatible = "brcm,bcm2709";
+	model = "Raspberry Pi 2 Model B";
+};
+
+&gpio {
+	i2c1_pins: i2c1 {
+		brcm,pins = <2 3>;
+		brcm,function = <4>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1_pins>;
+	clock-frequency = <100000>;
+	status = "okay";
+
+	nunchuk: nunchuk@52 {
+		compatible = "nintendo,nunchuk";
+		reg = <0x52>;
+	};
+};
+
+/ {
+	__overrides__ {
+		uart0 = <&uart0>,"status";
+		uart0_clkrate = <&clk_uart0>,"clock-frequency:0";
+		i2c1 = <&i2c1>,"status";
+		i2c1_baudrate = <&i2c1>,"clock-frequency:0";
+		core_freq = <&clk_core>,"clock-frequency:0";
+	};
+};
