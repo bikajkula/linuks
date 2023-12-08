@@ -1,0 +1,50 @@
+/*
+* Structure holds pointers to functions defined by the
+* driver that perform various operations on the device.
+*/
+static const struct file_operations fops = 
+{
+.read       =   device_read,
+.write      =   device_write,
+.unlocked_ioctl = device_ioctl
+};
+
+---------
+
+/*
+* Called when a process writes to dev file: cat /dev/chardev.
+*/
+static ssize_t device_read(struct file *filp, char *buff, size_t len, loff_t * off)
+{
+	pr_info("Sorry, this operation isn't supported.\n");
+
+	return -EINVAL;
+}
+
+---------
+
+/*
+* Called when a process writes to dev file: echo "msg to" > /dev/chardev.
+*/
+static ssize_t device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
+{
+	pr_info("Sorry, this operation isn't supported.\n");
+
+	return -EINVAL;
+}
+
+---------
+
+/* File ioctl function. */
+static long device_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+
+	switch(cmd) {
+		// ToDo
+	default:
+		pr_info("Error, command not supported.\n");
+    }
+
+    /* Success. */
+	return 0;
+}
