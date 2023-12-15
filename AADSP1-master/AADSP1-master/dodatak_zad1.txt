@@ -1,0 +1,52 @@
+Odgovarajucom skriptom proveriti formatiranje novog modula: (vezba 7)
+
+	cd ~/linux-kernel-labs/src/linux
+
+	scripts/checkpatch.pl -h
+
+	~/linux-kernel-labs/src/linux/scripts/checkpatch.pl--no-tree hello_version.c
+	
+Dodati kod u linuks stablo: (vezba 10)
+
+	napravimo novi bcm2709-rpi-2-b-novi.dts (linux/arch/arm/boot/dts) npr. i onda iz originalnog 
+	bcm2709-rpi-2-b.dts kopiramo u ovaj novi i u novom izbrisemo sve sem 
+	DTS include direktive, definiciju modela, compatible podesavanje, a od
+	definicije uredjaja zadrzi samo uart i core. (ovo zavisi od toga sta nam treba, nije uvek ovako)
+    U Makefile koji se tu nalazi dodamo samo liniju koja ce imati naziv bcm2709-rpi-2-b-novi.dtb po uzoru na 
+	vec postojece. I kad uradimo make onda se tu pojavi bcm2709-rpi-2-b-novi.dtb
+	i njega kopiramo u /var/lib/tftpboot/ i onda obavezno promeniti u bootcmd da na 
+	0x02000000 bude bcm2709-rpi-2-b-novi.dtb
+	
+	
+Podesiti da se rukovalac vidi iz konfiguracionih alata i da moze da se prevodi i kao modul i zajedno sa kernelom (vezba 7)
+	
+	u ~/linux-kernel-labs/src/linux/drivers/misc
+	otvorimo Kconfig
+	gedit Kcnofig &
+	tu dodamo jos jedan plok identican na pocetak
+	
+		config DRAJVER
+			tristate
+			deafult m
+			help 
+				Ovo je opis drajvera
+				
+	Zatim u Makefile-u
+		
+		po uzoru na ostalo dodamo 
+		obj-$(CONFIG_DRAJVER)      +=  drajver.o //drajver.c ili kako se vec zove
+				
+	vratimo se u ~/linux-kernel-labs/src/linux i uradimo make xconfig
+	tu treba da se nalazi kad pretrazimo ovaj nas DRAJVER i da ga otkacis.
+	
+	make -j4
+	
+	kopiramo zImage u /var/lib/tftpboot/
+	
+	i u buildroot-u na rpi-ju:
+	
+	modprobe ime_drajvera 
+	
+	
+
+	
